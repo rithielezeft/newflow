@@ -1,0 +1,112 @@
+{
+  "theme": "dark",
+  "typography": {
+    "headings": "Outfit",
+    "body": "IBM Plex Sans",
+    "import_url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Outfit:wght@400;500;700;800&display=swap",
+    "hierarchy": {
+      "h1": "text-4xl sm:text-5xl tracking-tight font-extrabold",
+      "h2": "text-2xl sm:text-3xl tracking-tight font-bold",
+      "h3": "text-xl sm:text-2xl font-semibold",
+      "h4": "text-lg sm:text-xl font-medium",
+      "body": "text-base leading-relaxed",
+      "label": "text-xs font-semibold tracking-[0.2em] uppercase text-slate-400"
+    }
+  },
+  "colors": {
+    "archetype": "ARCHETYPE 4: SWISS & HIGH-CONTRAST mixed with PERFORMANCE PRO (Tech Messaging)",
+    "background": "bg-slate-950",
+    "surface": {
+      "card": "bg-slate-900",
+      "sidebar": "bg-slate-950 border-r border-slate-800",
+      "header": "bg-slate-950/80 backdrop-blur-xl border-b border-slate-800"
+    },
+    "text": {
+      "primary": "text-slate-50",
+      "secondary": "text-slate-400",
+      "muted": "text-slate-500"
+    },
+    "brand": {
+      "whatsapp": "bg-emerald-500 text-slate-950 hover:bg-emerald-400",
+      "telegram": "bg-blue-500 text-white hover:bg-blue-400",
+      "primary": "bg-slate-50 text-slate-900 hover:bg-slate-200"
+    },
+    "border": "border-slate-800",
+    "ring": "ring-emerald-500"
+  },
+  "layouts": {
+    "dashboard": "Sidebar on left (w-64, fixed, hidden on mobile). Main content area on right with generous padding (p-6 sm:p-8 lg:p-12).",
+    "bento_grid": "Use grid-cols-1 md:grid-cols-2 xl:grid-cols-3 with gap-6 or gap-8 for metrics, status cards, and forms.",
+    "cards": "Flat solid surfaces. 1px solid border-slate-800. No soft box-shadows. Use rounded-xl or rounded-2xl.",
+    "forms": "Left-aligned labels, generous spacing (gap-6) between fields. Input fields: border-slate-800, bg-slate-900/50, focus:ring-1 focus:ring-emerald-500."
+  },
+  "components": {
+    "sidebar": "Dark minimal sidebar. Active navigation links should have a subtle background (bg-slate-900) and text-emerald-400 to indicate active state.",
+    "button": "Rounded-lg or rounded-xl. Transitions on transform and background. active:scale-95.",
+    "table": "Minimalist, no vertical borders. Subdued header text (uppercase, tracking-wider). Hover states on rows (hover:bg-slate-900/50).",
+    "qr_code_card": "Centered layout inside the card, stark white background box for the QR code itself to ensure scannability, surrounded by the dark card.",
+    "status_badge": "Small rounded-full badges with dot indicators. Emerald dot for Connected, Rose dot for Disconnected, Amber for Pending.",
+    "tabs": "Use clean underlines or pill-shaped indicators for tab active states rather than heavy boxes."
+  },
+  "motion": {
+    "buttons": "transition-all duration-200 hover:-translate-y-[1px] active:scale-95",
+    "lists": "Staggered entrance. For React: use standard CSS animations or framer-motion to slide in from bottom.",
+    "dialogs": "Fade in with a slight scale up (95% to 100%) and blur backdrop."
+  },
+  "media": {
+    "images": [
+      {
+        "category": "login_background",
+        "url": "https://images.unsplash.com/photo-1644088379091-d574269d422f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzN8MHwxfHNlYXJjaHwxfHxhYnN0cmFjdCUyMGRhcmslMjB0ZWNoJTIwbmV0d29ya3xlbnwwfHx8fDE3ODY4MDQwNjB8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Abstract blue nodes and lines, to be used as a full-cover background image on the login page with a heavy slate/black overlay (bg-slate-950/80)."
+      },
+      {
+        "category": "empty_state_messages",
+        "url": "https://images.unsplash.com/photo-1543332164-6e82f355badc?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMjh8MHwxfHNlYXJjaHwxfHxtZXNzYWdlJTIwc3BlZWNoJTIwYnViYmxlJTIwbmVvbnxlbnwwfHx8fDE3ODY4MDQwNjZ8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Neon 'hello' speech bubble to be used in empty states for message scheduling or chat lists to add a pop of color."
+      }
+    ]
+  },
+  "icons": {
+    "library": "lucide-react",
+    "instructions": "Use lucide-react for all icons. Keep size consistent (usually w-5 h-5). Do not use AI emojis."
+  },
+  "specific_views": {
+    "login": "Split screen layout. Left side: The abstract login_background image with a dark overlay and brand typography. Right side: Login form vertically and horizontally centered in a clean, cardless layout.",
+    "whatsapp_connect": "Card displaying WhatsApp connection status and a dedicated space for the QR code. Use a crisp bordered white box for the QR code to ensure phone cameras can read it.",
+    "telegram_connect": "Form card requesting api_id, api_hash, and phone number. The UI should accommodate a secondary step/dialog for the login code once requested.",
+    "message_composer": "Clean textarea with an image upload drag-and-drop zone positioned beneath it. Include a prominent 'Send' button.",
+    "telegram_relay": "Two-pane layout or step-by-step wizard. Left/Step 1: Select Source Telegram Channel. Right/Step 2: Select Destination WhatsApp Group. Include a toggle to enable/disable relay.",
+    "scheduler": "Form to pick target group, select days of the week (using clickable day pills like [M] [T] [W] [T] [F] [S] [S]), time picker, and message content area."
+  },
+  "accessibility": {
+    "contrast": "Ensure text contrast meets APCA/WCAG standards. Use text-slate-50 for primary text on dark backgrounds.",
+    "interactive": "Include focus-visible:ring-2 focus-visible:ring-emerald-500 and focus:outline-none on all interactive elements.",
+    "testing": "All interactive elements MUST include data-testid attribute in kebab-case."
+  },
+  "instructions_to_main_agent": [
+    "Install lucide-react, framer-motion, sonner, and react-router-dom if not already installed.",
+    "Set up the layout wrapper for the dashboard with a fixed sidebar and scrollable main area.",
+    "Apply 'Outfit' for headings and 'IBM Plex Sans' for body text globally in your CSS.",
+    "For cards, use flat solid dark backgrounds (bg-slate-900) with a subtle 1px border (border-slate-800).",
+    "Do NOT use glassmorphism unless it's a sticky header.",
+    "Use sonner for toast notifications on actions like 'Message Sent' or 'Settings Saved'.",
+    "Build the dashboard fully responsive: sidebar should be hidden behind a hamburger menu on mobile.",
+    "Ensure the QR code area has a pure white background so it is readable by phone cameras.",
+    "Use Shadcn UI components but override their styles to match the dark slate/emerald theme."
+  ],
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+    "You tend to converge toward generic outputs. Avoid this: make creative, distinctive frontends.",
+    "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients.",
+    "Create depth through layered design elements with z-index hierarchy.",
+    "You MUST NOT apply universal transition (e.g., transition: all). Always add transitions for specific interactive elements like transform and colors.",
+    "You MUST NOT center align the app container.",
+    "Always use modern button styles with interaction animations & color relevant to the app style.",
+    "NEVER use AI assistant Emoji characters (🤖🧠💭💡) for icons.",
+    "Every interaction needs micro-animations - hover states, transitions.",
+    "Use 2-3x more spacing than feels comfortable. Cramped designs look cheap.",
+    "Missing categories for images means DO NOT USE placeholder text.",
+    "Prioritize using pre-existing components from src/components/ui.",
+    "Use sonner for toast notifications."
+  ]
+}

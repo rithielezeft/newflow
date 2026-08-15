@@ -1,0 +1,63 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Outfit:wght@400;500;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+    margin: 0;
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-color: #020617;
+    color: #f8fafc;
+}
+
+h1, h2, h3, h4, .font-display {
+    font-family: 'Outfit', system-ui, sans-serif;
+}
+
+::selection {
+    background: #34d399;
+    color: #022c22;
+}
+
+@layer base {
+    :root {
+        --background: 222 47% 4%;
+        --foreground: 210 40% 98%;
+        --card: 222 47% 7%;
+        --card-foreground: 210 40% 98%;
+        --popover: 222 47% 6%;
+        --popover-foreground: 210 40% 98%;
+        --primary: 210 40% 98%;
+        --primary-foreground: 222 47% 9%;
+        --secondary: 217 33% 12%;
+        --secondary-foreground: 210 40% 98%;
+        --muted: 217 33% 12%;
+        --muted-foreground: 215 20% 65%;
+        --accent: 217 33% 14%;
+        --accent-foreground: 210 40% 98%;
+        --destructive: 0 72% 51%;
+        --destructive-foreground: 210 40% 98%;
+        --border: 217 33% 16%;
+        --input: 217 33% 16%;
+        --ring: 160 84% 39%;
+        --radius: 0.75rem;
+    }
+}
+
+@layer base {
+    * {
+        @apply border-border;
+    }
+}
+
+.stagger-in {
+    opacity: 0;
+    animation: staggerIn 0.5s ease forwards;
+}
+@keyframes staggerIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+}

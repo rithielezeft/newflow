@@ -1,0 +1,36 @@
+{
+  "summary": "Backend + Frontend testing of WhatsFlow Dashboard. 15/15 pytest tests pass (auth, protected routes, WhatsApp graceful degradation, Telegram validation, media upload, schedule CRUD + run-now 502). Frontend E2E via Playwright: login, settings persist, nav to all pages, schedule create/toggle/run-now/delete, Telegram non-numeric api_id validation, and logout all work end-to-end. Only concern: 502 status code used by backend for proxied WhatsApp failures gets replaced by Cloudflare's default 502 HTML page in this preview env, so the user sees a Cloudflare error message instead of the intended Portuguese error text in the UI toast.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/schedules/{id}/run and /api/whatsapp/send", "issue": "Returns HTTP 502 when Raspberry Pi WhatsFlow is unreachable. In the Emergent/Cloudflare preview environment, 502 responses are intercepted and replaced with a generic Cloudflare error HTML page, so the frontend cannot show the intended 'WhatsFlow inacessível...' message. Consider using 400 or 409 with a body {status:'unreachable', message:...} so the JSON survives the ingress and the user gets the friendly Portuguese error toast."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {"flow": "Scheduler - Enviar agora (run-now)", "issue": "Toast shows generic Cloudflare 502 HTML message instead of the intended Portuguese error, because backend uses HTTP 502 which Cloudflare rewrites. Root cause is backend side (see minor backend issue).", "affected_selectors": ["sched-run-*"]}
+    ],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/backend/tests/backend_test.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [
+    "Optional: change status codes for proxied failures (WhatsFlow Pi unreachable) from 502 to 400/409 or a 200-with-error-body so the Cloudflare preview ingress doesn't replace the JSON payload with its 502 HTML page. This will let the frontend show the intended friendly Portuguese toast."
+  ],
+  "critical_code_review_comments": [
+    "auth.py /me endpoint uses Header alias hack: current=Header(None, alias='Authorization') then calls get_current_user manually — works but inconsistent with the Depends(get_current_user) pattern used elsewhere. Cosmetic only.",
+    "server.py CORS uses allow_origins=['*'] together with allow_credentials=True — Starlette will silently downgrade credentials. Not an issue today (auth uses Bearer header, not cookies) but flag if cookie-auth is added later.",
+    "whatsflow.py _token_cache is a module-level dict — fine for single worker, but per-worker cache if workers > 1. Acceptable for this app scale.",
+    "scheduler.py: tick() uses `async for s in db.scheduled_messages.find(...)` and mutates last_run_marker before firing — good idempotency guard. OK.",
+    "telegram_service.py connect() saves session BEFORE the code is verified; verify() reuses the session. That is standard Telethon pattern. OK.",
+    "media.py download route accepts token via ?auth= query param — works for <img src> usage but note tokens can leak in logs; documented tradeoff."
+  ],
+  "updated_files": ["/app/backend/tests/backend_test.py", "/app/test_reports/iteration_1.json"],
+  "success_rate": {"backend": "100% (15/15)", "frontend": "100% (all flows exercised OK)"},
+  "test_credentials": "admin@whatsflow.app / whatsflow123 (from /app/memory/test_credentials.md) — verified working.",
+  "seed_data_creation": "Test schedules created with chat_id prefix 120363test-*@g.us; all deleted at end of tests. Settings row {_id:'whatsflow'} in Mongo may retain base_url=http://127.0.0.1:8001 and password='testpwd' from the test — main agent should be aware if resetting.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Full flow works. Only remaining nit is the 502 → Cloudflare HTML rewrite. If main agent changes status codes, retest /api/schedules/{id}/run and /api/whatsapp/send to confirm the JSON body {message:'WhatsFlow inacessível...'} now reaches the frontend and the toast shows the Portuguese message.",
+  "rca of the issue": "When backend raises HTTPException(status_code=502), the Kubernetes ingress / Cloudflare in front of this preview interprets 502 as an origin failure and returns its own HTML error page, discarding the FastAPI JSON body. UI toast therefore shows Cloudflare text instead of 'WhatsFlow inacessível...'. Mitigation: use a non-5xx status (e.g., 400/409) or return 200 with {ok:false, message}."
+}
