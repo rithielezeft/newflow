@@ -9,7 +9,6 @@ from whatsflow import router as whatsapp_router
 from telegram_service import router as telegram_router
 from scheduler import router as schedules_router, start_scheduler
 from media import router as media_router
-import storage
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -43,13 +42,8 @@ async def on_startup():
     await db.telegram_accounts.create_index("account_id", unique=True)
     await db.scheduled_messages.create_index("id", unique=True)
     await seed_admin()
-    try:
-        storage.init_storage()
-        logger.info("Object storage initialized")
-    except Exception as e:
-        logger.error(f"Storage init failed: {e}")
     start_scheduler()
-    logger.info("WhatsFlow Dashboard started")
+    logger.info("NewFlow Dashboard started")
 
 
 @app.on_event("shutdown")
