@@ -3,11 +3,9 @@ Description=NewFlow Backend (FastAPI - uvicorn)
 After=network.target
 
 [Service]
-# Ajuste o usuario se nao for "pi"
-User=pi
-WorkingDirectory=/opt/newflow/backend
-# O app carrega o .env de /opt/newflow/backend/.env automaticamente (python-dotenv)
-ExecStart=/opt/newflow/backend/venv/bin/uvicorn server:app --host 127.0.0.1 --port 8011
+User=rithiele
+WorkingDirectory=/home/rithiele/websites/newflow/backend
+ExecStart=/home/rithiele/websites/newflow/backend/venv/bin/uvicorn server:app --host 127.0.0.1 --port 8011
 Restart=always
 RestartSec=3
 
