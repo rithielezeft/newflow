@@ -14,8 +14,8 @@ if BASE_URL is None:
             if line.startswith("REACT_APP_BACKEND_URL="):
                 BASE_URL = line.split("=", 1)[1].strip().rstrip("/")
 
-ADMIN_EMAIL = "admin@whatsflow.app"
-ADMIN_PASSWORD = "whatsflow123"
+ADMIN_EMAIL = "rithielegui@gmail.com"
+ADMIN_PASSWORD = "Rithi0518@"
 
 
 @pytest.fixture(scope="session")
@@ -91,13 +91,14 @@ class TestWhatsApp:
         assert r.status_code == 200
         assert r.json().get("not_ready") is True
 
-    def test_send_returns_502(self, auth_headers):
+    def test_send_returns_400(self, auth_headers):
         r = requests.post(
             f"{BASE_URL}/api/whatsapp/send",
             headers=auth_headers,
             json={"chat_id": "120363test@g.us", "message": "hello"},
         )
-        assert r.status_code == 502
+        assert r.status_code == 400
+        assert "detail" in r.json()
 
     def test_settings_persist(self, auth_headers):
         payload = {"base_url": "http://127.0.0.1:8001", "password": "testpwd"}
@@ -144,7 +145,13 @@ class TestMedia:
         data = r.json()
         assert "file_id" in data
         assert data["content_type"] == "image/png"
-        return data["file_id"]
+        # GET the file back using ?auth=<token>
+        fid = data["file_id"]
+        g = requests.get(f"{BASE_URL}/api/media/{fid}?auth={token}")
+        assert g.status_code == 200
+        assert g.headers.get("content-type", "").startswith("image/")
+        assert len(g.content) > 0
+        return fid
 
 
 # ---- Schedules CRUD ----
@@ -175,9 +182,10 @@ class TestSchedules:
         r = requests.patch(f"{BASE_URL}/api/schedules/{sid}", headers=auth_headers, json={"enabled": False})
         assert r.status_code == 200
 
-        # Run now -> 502 since Pi unreachable
+        # Run now -> 400 since Pi unreachable (friendly JSON, not 5xx)
         r = requests.post(f"{BASE_URL}/api/schedules/{sid}/run", headers=auth_headers)
-        assert r.status_code == 502
+        assert r.status_code == 400
+        assert "detail" in r.json()
 
         # Missing content validation
         r = requests.post(

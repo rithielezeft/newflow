@@ -38,10 +38,14 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def on_startup():
-    await db.users.create_index("email", unique=True)
-    await db.telegram_accounts.create_index("account_id", unique=True)
-    await db.scheduled_messages.create_index("id", unique=True)
-    await seed_admin()
+    try:
+        await db.users.create_index("email", unique=True)
+        await db.telegram_accounts.create_index("account_id", unique=True)
+        await db.scheduled_messages.create_index("id", unique=True)
+        await seed_admin()
+        logger.info("Database ready")
+    except Exception as e:
+        logger.error(f"Database init failed (app will still start): {e}")
     start_scheduler()
     logger.info("NewFlow Dashboard started")
 

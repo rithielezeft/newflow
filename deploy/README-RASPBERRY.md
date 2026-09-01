@@ -52,9 +52,20 @@ sudo systemctl status newflow-backend    # active (running)
 ```
 
 ## 4) Frontend: publicar o build
+O `build` NÃO vai no Git. Você tem duas opções:
+
+**Opção A — usar o build já pronto do pacote `newflow-deploy.tar.gz`:**
 ```bash
+tar -xzf newflow-deploy.tar.gz -C /tmp/newflow_pkg
 sudo mkdir -p /var/www/newflow
-sudo cp -r /opt/newflow/frontend/build/* /var/www/newflow/
+sudo cp -r /tmp/newflow_pkg/frontend/build/* /var/www/newflow/
+```
+
+**Opção B — gerar o build (no seu PC, não na Pi):**
+```bash
+cd frontend
+REACT_APP_BACKEND_URL="" yarn install && REACT_APP_BACKEND_URL="" yarn build
+# copie a pasta build/ para a Pi em /var/www/newflow/
 ```
 
 ## 5) Nginx na porta 5011 (domínio via túnel/proxy na frente)
@@ -85,11 +96,10 @@ Acesse: **https://newflow.zeferius.com.br** — login **rithielegui@gmail.com** 
 cd /opt/newflow && git pull
 # backend:
 sudo systemctl restart newflow-backend
-# frontend (se mudou):
-sudo cp -r /opt/newflow/frontend/build/* /var/www/newflow/
+# frontend (se mudou): gere um novo build (Opção B acima) e copie para /var/www/newflow/
 ```
-> O `frontend/build` já vem versionado no repo. Se você alterar o frontend, gere um novo build
-> (`cd frontend && REACT_APP_BACKEND_URL="" yarn build`) e faça commit da pasta `build`.
+> O `frontend/build` não é versionado. Gere-o no seu PC com
+> `REACT_APP_BACKEND_URL="" yarn build` e copie a pasta `build/` para `/var/www/newflow/`.
 
 ---
 
