@@ -1,4 +1,4 @@
-# NewFlow — Deploy na Raspberry Pi via GitHub (Nginx 5011, domínio newflow.zeferius.com.br)
+# NewFlow — Deploy na Raspberry Pi via GitHub (Nginx 5011, domínio newflow.newhybrid.com)
 
 Stack: **React (build estático) + FastAPI (uvicorn) + MongoDB Atlas**. Sem dependências da Emergent
 (uploads de imagem agora ficam em **disco local**). O frontend já vem **pré-compilado** em `frontend/build`
@@ -69,7 +69,7 @@ REACT_APP_BACKEND_URL="" yarn install && REACT_APP_BACKEND_URL="" yarn build
 ```
 
 ## 5) Nginx na porta 5011 (domínio via túnel/proxy na frente)
-Use este quando o **Cloudflare Tunnel / proxy** aponta `newflow.zeferius.com.br` → porta 5011
+Use este quando o **Cloudflare Tunnel / proxy** aponta `newflow.newhybrid.com` → porta 5011
 (o TLS/cadeado é terminado no Cloudflare):
 ```bash
 sudo cp /opt/newflow/deploy/nginx-newflow.conf /etc/nginx/sites-available/newflow.conf
@@ -83,11 +83,11 @@ Só se a **própria Pi** for terminar o TLS (portas 80/443 abertas e domínio re
 sudo cp /opt/newflow/deploy/nginx-newflow-https.conf /etc/nginx/sites-available/newflow.conf
 sudo ln -s /etc/nginx/sites-available/newflow.conf /etc/nginx/sites-enabled/
 sudo apt install -y certbot python3-certbot-nginx
-sudo certbot --nginx -d newflow.zeferius.com.br
+sudo certbot --nginx -d newflow.newhybrid.com
 sudo nginx -t && sudo systemctl reload nginx
 ```
 
-Acesse: **https://newflow.zeferius.com.br** — login **rithielegui@gmail.com** / **Rithi0518@**
+Acesse: **https://newflow.newhybrid.com** — login **rithielegui@gmail.com** / **Rithi0518@**
 
 ---
 
