@@ -1,5 +1,6 @@
 import base64
 import os
+import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -264,3 +265,131 @@ async def relay(body: RelayBody, user=Depends(get_current_user)):
     if not ok:
         raise HTTPException(status_code=400, detail=data.get("message", "Falha ao enviar para o WhatsApp"))
     return {"success": True, "sent_text": text, "had_image": bool(image_url), "wa_result": data}
+
+
+# ----------------- Repasse automático (auto-relay) -----------------
+
+class AutoRelayBody(BaseModel):
+    source_chat_id: str
+    source_name: Optional[str] = None
+    wa_chat_id: str
+    wa_name: Optional[str] = None
+    include_image: bool = True
+    extra_text: Optional[str] = None
+
+
+class ToggleRelayBody(BaseModel):
+    enabled: bool
+
+
+@router.get("/relays")
+async def list_relays(user=Depends(get_current_user)):
+    items = await db.auto_relays.find({}, {"_id": 0}).sort("created_at", -1).to_list(200)
+    return {"relays": items}
+
+
+@router.post("/relays")
+async def create_relay(body: AutoRelayBody, user=Depends(get_current_user)):
+    row = await _get_row()
+    client = await _authorized_client(row)
+    try:
+        entity = None
+        try:
+            entity = await client.get_entity(int(body.source_chat_id))
+        except (ValueError, TypeError):
+            try:
+                entity = await client.get_entity(body.source_chat_id)
+            except Exception:
+                entity = None
+        if entity is None:
+            raise HTTPException(status_code=400, detail="Não foi possível resolver a origem no Telegram")
+        latest = await client.get_messages(entity, limit=1)
+        last_id = latest[0].id if latest else 0
+    finally:
+        await client.disconnect()
+    doc = {
+        "id": str(uuid.uuid4()),
+        "source_chat_id": body.source_chat_id,
+        "source_name": body.source_name,
+        "wa_chat_id": body.wa_chat_id,
+        "wa_name": body.wa_name,
+        "include_image": body.include_image,
+        "extra_text": body.extra_text,
+        "enabled": True,
+        "last_message_id": last_id,
+        "last_status": "aguardando novos posts",
+        "forwarded_count": 0,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.auto_relays.insert_one(doc)
+    doc.pop("_id", None)
+    return doc
+
+
+@router.patch("/relays/{relay_id}")
+async def toggle_relay(relay_id: str, body: ToggleRelayBody, user=Depends(get_current_user)):
+    res = await db.auto_relays.update_one({"id": relay_id}, {"$set": {"enabled": body.enabled}})
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Regra não encontrada")
+    return {"success": True}
+
+
+@router.delete("/relays/{relay_id}")
+async def delete_relay(relay_id: str, user=Depends(get_current_user)):
+    await db.auto_relays.delete_one({"id": relay_id})
+    return {"success": True}
+
+
+async def poll_auto_relays():
+    """Background: encaminha automaticamente novos posts do Telegram para o WhatsApp."""
+    row = await _get_row()
+    if not row or row.get("pending") or not row.get("session_enc"):
+        return
+    relays = await db.auto_relays.find({"enabled": True}).to_list(100)
+    if not relays:
+        return
+    client = _make_client(_dec(row["session_enc"]), int(row["api_id"]), row["api_hash"])
+    try:
+        await client.connect()
+        if not await client.is_user_authorized():
+            return
+        for r in relays:
+            try:
+                try:
+                    entity = await client.get_entity(int(r["source_chat_id"]))
+                except (ValueError, TypeError):
+                    entity = await client.get_entity(r["source_chat_id"])
+                last_id = r.get("last_message_id", 0) or 0
+                msgs = await client.get_messages(entity, min_id=last_id, limit=30)
+                new_max = last_id
+                sent = 0
+                for m in sorted(msgs, key=lambda x: x.id):
+                    if m.id <= last_id:
+                        continue
+                    new_max = max(new_max, m.id)
+                    text = m.message or ""
+                    if r.get("extra_text"):
+                        text = (text + "\n\n" + r["extra_text"]).strip() if text else r["extra_text"]
+                    image_url = None
+                    if r.get("include_image", True) and m.photo:
+                        raw = await client.download_media(m, file=bytes)
+                        if raw:
+                            image_url = f"data:image/jpeg;base64,{base64.b64encode(raw).decode()}"
+                    if text or image_url:
+                        ok, _ = await wa_send(r["wa_chat_id"], text or None, image_url)
+                        if ok:
+                            sent += 1
+                await db.auto_relays.update_one(
+                    {"id": r["id"]},
+                    {"$set": {
+                        "last_message_id": new_max,
+                        "last_status": f"{sent} repassado(s)" if sent else "sem novidades",
+                        "last_run_at": datetime.now(timezone.utc).isoformat(),
+                    }, "$inc": {"forwarded_count": sent}},
+                )
+            except Exception as e:
+                await db.auto_relays.update_one({"id": r["id"]}, {"$set": {"last_status": f"erro: {str(e)[:80]}"}})
+    except Exception:
+        pass
+    finally:
+        await client.disconnect()

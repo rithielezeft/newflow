@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ChatSelect } from "@/components/ChatSelect";
 import { ImageUpload } from "@/components/ImageUpload";
-import { RefreshCw, Send, QrCode, Loader2 } from "lucide-react";
+import { RefreshCw, Send, QrCode, Loader2, Copy, Users, Hash, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
 function labelFor(state, ready) {
@@ -22,9 +22,49 @@ function labelFor(state, ready) {
   }[state] || state;
 }
 
+function ChatList({ title, icon: Icon, items, message, onCopy }) {
+  return (
+    <div>
+      <p className="text-sm font-semibold text-slate-300 mb-2 flex items-center gap-2">
+        <Icon className="w-4 h-4 text-emerald-400" /> {title} <span className="text-slate-500">({items.length})</span>
+      </p>
+      {items.length === 0 ? (
+        <p className="text-xs text-amber-400 flex items-center gap-1.5">
+          <AlertTriangle className="w-3.5 h-3.5" /> {message || "Nada encontrado."}
+        </p>
+      ) : (
+        <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+          {items.map((c) => (
+            <div key={c.id} data-testid={`wa-chat-${c.id}`} className="flex items-center justify-between gap-2 p-2.5 rounded-lg bg-slate-950/50 border border-slate-800">
+              <div className="min-w-0">
+                <p className="text-sm truncate">{c.name}</p>
+                <p className="text-[11px] text-slate-500 font-mono truncate">{c.id}</p>
+              </div>
+              <Button
+                data-testid={`wa-copy-${c.id}`}
+                size="sm"
+                variant="outline"
+                onClick={() => onCopy(c.id)}
+                className="shrink-0 h-8 border-slate-800 bg-slate-900 text-slate-300"
+              >
+                <Copy className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function WhatsAppPage() {
   const [status, setStatus] = useState(null);
   const [qr, setQr] = useState(null);
+  const [groups, setGroups] = useState([]);
+  const [channels, setChannels] = useState([]);
+  const [groupsMsg, setGroupsMsg] = useState("");
+  const [channelsMsg, setChannelsMsg] = useState("");
+  const [loadingChats, setLoadingChats] = useState(false);
   const [chatId, setChatId] = useState("");
   const [message, setMessage] = useState("");
   const [imageFileId, setImageFileId] = useState(null);
@@ -45,11 +85,32 @@ export default function WhatsAppPage() {
     }
   };
 
+  const loadChats = async () => {
+    setLoadingChats(true);
+    try {
+      const [g, c] = await Promise.all([api.get("/whatsapp/groups"), api.get("/whatsapp/channels")]);
+      setGroups(g.data.chats || []);
+      setChannels(c.data.chats || []);
+      setGroupsMsg(g.data.not_ready ? g.data.message : "");
+      setChannelsMsg(c.data.not_ready ? c.data.message : "");
+    } catch (e) {
+      setGroupsMsg(apiError(e));
+    } finally {
+      setLoadingChats(false);
+    }
+  };
+
   useEffect(() => {
     loadStatus();
-    const t = setInterval(loadStatus, 8000);
+    loadChats();
+    const t = setInterval(loadStatus, 10000);
     return () => clearInterval(t);
   }, []);
+
+  const copyId = (id) => {
+    navigator.clipboard?.writeText(id);
+    toast.success("JID copiado!");
+  };
 
   const send = async () => {
     if (!chatId) return toast.error("Selecione um grupo ou canal");
@@ -82,7 +143,7 @@ export default function WhatsAppPage() {
               label={labelFor(status.state, status.ready)}
             />
           )}
-          <Button data-testid="wa-refresh" variant="outline" size="icon" onClick={loadStatus} className="border-slate-800 bg-slate-900">
+          <Button data-testid="wa-refresh" variant="outline" size="icon" onClick={() => { loadStatus(); loadChats(); }} className="border-slate-800 bg-slate-900">
             <RefreshCw className="w-4 h-4" />
           </Button>
         </div>
@@ -90,7 +151,7 @@ export default function WhatsAppPage() {
 
       {status?.unreachable && (
         <p className="text-sm text-amber-400 mt-3">
-          {status.error || "WhatsFlow inacessível."} Configure a URL da sua Raspberry em Configurações ou rode o painel na própria Pi.
+          {status.error || "WhatsFlow inacessível."} Configure a URL e a senha do WhatsFlow em Configurações e confirme que o número está pareado.
         </p>
       )}
 
@@ -103,7 +164,7 @@ export default function WhatsAppPage() {
           </CardHeader>
           <CardContent>
             {connected ? (
-              <div className="text-center py-10">
+              <div className="text-center py-8">
                 <div className="w-14 h-14 mx-auto rounded-full bg-emerald-500/10 flex items-center justify-center">
                   <Send className="w-7 h-7 text-emerald-400" />
                 </div>
@@ -112,47 +173,63 @@ export default function WhatsAppPage() {
             ) : qr ? (
               <div className="flex flex-col items-center gap-4 py-4" data-testid="wa-qr-wrap">
                 <div className="bg-white p-4 rounded-xl">
-                  <img src={qr} alt="QR Code" className="w-56 h-56" data-testid="wa-qr-image" />
+                  <img src={qr} alt="QR Code" className="w-52 h-52" data-testid="wa-qr-image" />
                 </div>
-                <p className="text-sm text-slate-400 text-center">Abra o WhatsApp → Aparelhos conectados → Conectar aparelho.</p>
+                <p className="text-sm text-slate-400 text-center">WhatsApp → Aparelhos conectados → Conectar aparelho.</p>
               </div>
             ) : (
-              <div className="text-center py-10 text-slate-500">
+              <div className="text-center py-8 text-slate-500">
                 <Loader2 className="w-6 h-6 mx-auto animate-spin" />
-                <p className="mt-3 text-sm">Aguardando QR code do servidor...</p>
+                <p className="mt-3 text-sm">Aguardando QR / conexão...</p>
               </div>
             )}
           </CardContent>
         </Card>
 
         <Card className="bg-slate-900 border-slate-800">
-          <CardHeader>
+          <CardHeader className="flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2 font-display">
-              <Send className="w-5 h-5 text-emerald-400" /> Enviar mensagem
+              <Users className="w-5 h-5 text-emerald-400" /> Meus grupos e canais
             </CardTitle>
+            <Button data-testid="wa-chats-refresh" size="sm" variant="outline" onClick={loadChats} disabled={loadingChats} className="border-slate-800 bg-slate-900">
+              {loadingChats ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+            </Button>
           </CardHeader>
           <CardContent className="space-y-5">
-            <ChatSelect value={chatId} onChange={(id) => setChatId(id)} testId="wa-compose-chat" />
-            <Textarea
-              data-testid="wa-compose-message"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="Escreva sua mensagem..."
-              rows={4}
-              className="bg-slate-900/60 border-slate-800 resize-none"
-            />
-            <ImageUpload onChange={setImageFileId} testId="wa-compose-image" />
-            <Button
-              data-testid="wa-send-btn"
-              onClick={send}
-              disabled={sending}
-              className="w-full bg-emerald-500 text-slate-950 hover:bg-emerald-400 font-semibold transition-all duration-200 active:scale-95"
-            >
-              {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4 mr-2" /> Enviar agora</>}
-            </Button>
+            <ChatList title="Grupos" icon={Users} items={groups} message={groupsMsg} onCopy={copyId} />
+            <ChatList title="Canais" icon={Hash} items={channels} message={channelsMsg} onCopy={copyId} />
+            <p className="text-[11px] text-slate-500">Toque em copiar para pegar o JID e usar em agendamentos/repasse.</p>
           </CardContent>
         </Card>
       </div>
+
+      <Card className="bg-slate-900 border-slate-800 mt-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 font-display">
+            <Send className="w-5 h-5 text-emerald-400" /> Enviar mensagem
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-5 max-w-2xl">
+          <ChatSelect value={chatId} onChange={(id) => setChatId(id)} testId="wa-compose-chat" />
+          <Textarea
+            data-testid="wa-compose-message"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="Escreva sua mensagem..."
+            rows={4}
+            className="bg-slate-900/60 border-slate-800 resize-none"
+          />
+          <ImageUpload onChange={setImageFileId} testId="wa-compose-image" />
+          <Button
+            data-testid="wa-send-btn"
+            onClick={send}
+            disabled={sending}
+            className="bg-emerald-500 text-slate-950 hover:bg-emerald-400 font-semibold transition-all duration-200 active:scale-95"
+          >
+            {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4 mr-2" /> Enviar agora</>}
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 }

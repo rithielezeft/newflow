@@ -117,4 +117,6 @@ async def tick():
 def start_scheduler():
     if not scheduler.running:
         scheduler.add_job(tick, "interval", seconds=60, id="wf_tick", replace_existing=True)
+        from telegram_service import poll_auto_relays
+        scheduler.add_job(poll_auto_relays, "interval", seconds=60, id="relay_tick", replace_existing=True)
         scheduler.start()
